@@ -1,0 +1,14 @@
+# Ignore Python's cache files
+__pycache__/
+*.pyc
+
+# Ignore virtual environment folders
+venv/
+.venv/
+
+# Ignore all raw and processed data files
+data/raw/*
+data/processed/*
+
+# You can temporarily comment out the line below to commit the final guide
+# output/*
