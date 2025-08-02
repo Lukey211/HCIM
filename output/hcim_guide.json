@@ -1,0 +1,28 @@
+[
+    {
+        "title": "Starting Out in Lumbridge",
+        "goal": "Prepare for Cook's Assistant and gather initial supplies.",
+        "inventory_setup": [
+            "A small fishing net",
+            "An axe",
+            "A tinderbox"
+        ],
+        "steps": [
+            {
+                "text": "Talk to the Lumbridge Guide to get your initial tools."
+            },
+            {
+                "text": "Walk to the pond north of the castle and catch 5 Shrimp."
+            },
+            {
+                "text": "Walk west to the trees and chop 5 logs."
+            },
+            {
+                "text": "Light the logs and cook the shrimp on the fire."
+            },
+            {
+                "text": "Walk to the Lumbridge Castle kitchen to start Cook's Assistant."
+            }
+        ]
+    }
+]
