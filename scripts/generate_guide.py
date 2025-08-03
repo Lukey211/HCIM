@@ -3,7 +3,6 @@ import json
 import os
 
 # --- DATABASE PATH ---
-# The script will automatically find the database file in the data directory
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.join(SCRIPT_DIR, '..')
 DB_PATH = os.path.join(PROJECT_ROOT, 'data', 'osrs_guide.db')
@@ -15,14 +14,16 @@ class GuideGenerator:
         """Initializes the Guide Generator, connecting to the database."""
         self.conn = self.get_db_connection()
         self.player_state = self.initialize_player_state()
-        self.all_tasks = self.load_all_tasks_from_db()
+        self.all_tasks = self.load_all_tasks_from_db() # This will now be populated
         self.guide = []
 
     def get_db_connection(self):
         """Establishes a connection to the SQLite database."""
+        if not os.path.exists(DB_PATH):
+            print(f"❌ Database file not found at {DB_PATH}. Please run db_loader.py first.")
+            return None
         try:
             conn = sqlite3.connect(DB_PATH)
-            # This allows us to access columns by name
             conn.row_factory = sqlite3.Row
             print("✅ Successfully connected to the SQLite database.")
             return conn
@@ -32,103 +33,97 @@ class GuideGenerator:
 
     def initialize_player_state(self):
         """Sets up the initial state for a new level 3 account."""
-        # In a more advanced version, this could be a more detailed dictionary or class
         return {
-            "skills": {
-                "attack": 1, "strength": 1, "defence": 1, "hitpoints": 10,
-                "ranged": 1, "magic": 1, "prayer": 1, "cooking": 1,
-                "woodcutting": 1, "fletching": 1, "fishing": 1, "firemaking": 1,
-                "crafting": 1, "smithing": 1, "mining": 1, "herblore": 1,
-                "agility": 1, "thieving": 1, "slayer": 1, "farming": 1,
-                "runecraft": 1, "hunter": 1, "construction": 1
-            },
+            "skills": { "attack": 1, "strength": 1, "defence": 1, "hitpoints": 10, "ranged": 1, "magic": 1, "prayer": 1, "cooking": 1, "woodcutting": 1, "fletching": 1, "fishing": 1, "firemaking": 1, "crafting": 1, "smithing": 1, "mining": 1, "herblore": 1, "agility": 1, "thieving": 1, "slayer": 1, "farming": 1, "runecraft": 1, "hunter": 1, "construction": 1 },
             "completed_quests": [],
             "inventory": [],
             "bank": [],
-            "current_location": {"x": 3222, "y": 3218, "plane": 0} # Lumbridge
+            "current_location": {"x": 3222, "y": 3218, "plane": 0}
         }
 
     def load_all_tasks_from_db(self):
         """
-        Placeholder function. This will eventually query the database for all
-        parsed quest steps, skilling actions, item pickups, etc.
-        For now, it returns a hardcoded example.
+        Loads all quest steps from the database into a list of task dictionaries.
         """
-        print("Loading all tasks from database...")
+        print("Loading all tasks from the database...")
+        if not self.conn:
+            return []
+            
         cursor = self.conn.cursor()
         
-        # --- PSEUDOCODE for future database queries ---
-        # cursor.execute("SELECT * FROM quests")
-        # all_quests = cursor.fetchall()
-        #
-        # cursor.execute("SELECT * FROM skilling_actions")
-        # all_skilling = cursor.fetchall()
+        # Query to join quests and tasks to get all data
+        cursor.execute("""
+            SELECT
+                t.task_id,
+                q.name AS quest_name,
+                t.step_number,
+                t.description
+            FROM tasks t
+            JOIN quests q ON t.quest_id = q.quest_id
+            ORDER BY q.name, t.step_number;
+        """)
         
-        # For now, we'll return an empty list as we haven't defined tasks yet
-        tasks = []
-        print("✅ Tasks loaded (currently empty).")
+        tasks_from_db = cursor.fetchall()
+        
+        # Convert the database rows into a list of dictionaries for easier use
+        tasks = [dict(row) for row in tasks_from_db]
+        
+        print(f"✅ Loaded {len(tasks)} tasks from the database.")
+        
+        # --- PROOF OF CONCEPT ---
+        # Let's print the first task we loaded to prove it's working.
+        if tasks:
+            print("\n--- Sample Task Loaded ---")
+            print(f"Quest: {tasks[0]['quest_name']}")
+            print(f"Step {tasks[0]['step_number']}: {tasks[0]['description']}")
+            print("------------------------\n")
+
         return tasks
 
     def find_unlocked_tasks(self):
         """
-        Filters the master task list to find tasks whose dependencies
-        (skill levels, quest points, items) are met by the current player_state.
+        (Placeholder) Filters tasks based on player_state.
         """
-        unlocked_tasks = []
-        for task in self.all_tasks:
-            # --- PSEUDOCODE for dependency checking ---
-            # requirements_met = True
-            # if task.required_skills:
-            #     for skill, level in task.required_skills.items():
-            #         if self.player_state['skills'][skill] < level:
-            #             requirements_met = False
-            #             break
-            # if requirements_met:
-            #     unlocked_tasks.append(task)
-            pass
-        return unlocked_tasks
+        # This is where the logic to check skill requirements, etc., will go.
+        return self.all_tasks # For now, return all tasks
 
     def create_trip(self):
         """
-        This is the core logic engine. It will:
-        1. Identify a major goal (e.g., complete a quest).
-        2. Select a "seed task" for that goal (e.g., the first step of the quest).
-        3. Query the database for nearby, zero-risk tasks and required item spawns using coordinate math.
-        4. Generate a step-by-step plan for the trip.
-        5. Return a "trip" object.
+        (Placeholder) The core logic engine.
+        For now, it just creates one trip based on the first available task.
         """
         print("Creating a new trip...")
-        # This is a hardcoded example trip for demonstration purposes.
-        # The real logic will be much more complex.
+        
+        unlocked_tasks = self.find_unlocked_tasks()
+        if not unlocked_tasks:
+            print("No more unlocked tasks available.")
+            return None
+
+        # Let's build a trip around the first unlocked task
+        seed_task = unlocked_tasks[0]
+        
         trip = {
-            "title": "Starting Out in Lumbridge",
-            "goal": "Prepare for Cook's Assistant and gather initial supplies.",
-            "inventory_setup": ["A small fishing net", "An axe", "A tinderbox"],
+            "title": f"Quest: {seed_task['quest_name']}",
+            "goal": f"Complete the first step of {seed_task['quest_name']}.",
+            "inventory_setup": ["Coins", "Stamina potion"], # Example items
             "steps": [
-                {"text": "Talk to the Lumbridge Guide to get your initial tools."},
-                {"text": "Walk to the pond north of the castle and catch 5 Shrimp."},
-                {"text": "Walk west to the trees and chop 5 logs."},
-                {"text": "Light the logs and cook the shrimp on the fire."},
-                {"text": "Walk to the Lumbridge Castle kitchen to start Cook's Assistant."}
+                {"text": seed_task['description']}
             ]
         }
         return trip
 
     def run(self):
-        """Generates the full guide until the end goal is met."""
+        """Generates the full guide."""
         print("\nStarting guide generation...")
         
-        # This loop will eventually be the core of the program.
-        # For now, it just runs once to generate our example trip.
-        while len(self.player_state["completed_quests"]) < 1: # Loop just once for now
-            new_trip = self.create_trip()
+        if not self.all_tasks:
+            print("No tasks loaded from the database. Cannot generate a guide.")
+            return
+
+        # For now, just generate one trip to demonstrate
+        new_trip = self.create_trip()
+        if new_trip:
             self.guide.append(new_trip)
-            
-            # --- PSEUDOCODE for updating player state ---
-            # self.update_player_state(new_trip)
-            
-            # We'll just break to prevent an infinite loop in this skeleton version
-            break
 
         print("Guide generation complete.")
         self.save_guide()

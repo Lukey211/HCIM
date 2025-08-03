@@ -1,27 +1,14 @@
 [
     {
-        "title": "Starting Out in Lumbridge",
-        "goal": "Prepare for Cook's Assistant and gather initial supplies.",
+        "title": "Quest: A Kingdom Divided",
+        "goal": "Complete the first step of A Kingdom Divided.",
         "inventory_setup": [
-            "A small fishing net",
-            "An axe",
-            "A tinderbox"
+            "Coins",
+            "Stamina potion"
         ],
         "steps": [
             {
-                "text": "Talk to the Lumbridge Guide to get your initial tools."
-            },
-            {
-                "text": "Walk to the pond north of the castle and catch 5 Shrimp."
-            },
-            {
-                "text": "Walk west to the trees and chop 5 logs."
-            },
-            {
-                "text": "Light the logs and cook the shrimp on the fire."
-            },
-            {
-                "text": "Walk to the Lumbridge Castle kitchen to start Cook's Assistant."
+                "text": "Great Kourend: a land of wealth, comfort and security. Across its five cities, the people of this Kingdom work to bring peace and prosperity. However, all is not as it seems. Beneath this delicate fa\u00e7ade lies an uncomfortable truth: the kingdom of Great Kourend is A Kingdom Divided. Since the death of the last king, Great Kourend has been ruled by the Kourend Council . Under the watchful gaze of the Council, Kourend has enjoyed a golden age of progression. But not all of its citizens are happy, and, spurred by the recent arrest of Councillor Sophia Hughes , allegations of corruption are growing. However, the political games of the Council may be the least of Kourend's concerns. A darker power is gathering in the Kingdom - one that could change the face of Gielinor forever..."
             }
         ]
     }
