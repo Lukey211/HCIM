@@ -1,32 +1,39 @@
+Excellent idea. A comprehensive README.md is crucial for the project's clarity and future development. Based on our entire journey and the final state of all the scripts and files you've uploaded, here is a detailed, in-depth README.md that accurately reflects the full scope of what we have accomplished and what each component does.
+
+You can copy and paste this directly into your README.md file.
+
 HCIM Efficiency Guide Generator
 
-This project is a data pipeline designed to generate a static, efficient questing and skilling guide for Old School RuneScape (OSRS) Hardcore Iron Man (HCIM) accounts. The primary goal is to produce an optimal step-by-step guide that minimizes risk and travel time, batching tasks together geospatially to achieve a Quest Cape.
+Project Overview
+
+This project is a sophisticated, multi-stage data pipeline designed to generate a static, optimal step-by-step guide for Old School RuneScape (OSRS) Hardcore Ironman (HCIM) players. The ultimate goal is to produce the most efficient path from a new account to a Quest Cape, intelligently batching quests, skilling, and item gathering to minimize travel time and risk.
+
+The system is built on a foundation of automated data scraping, processing, and storage, with a clear separation between the data pipeline and the final presentation layer.
 
 Repository Structure
 
-The project is organized to separate data, logic, and presentation into distinct modules.
+The project is organized into distinct modules for data, scripting logic, final output, and a web application front-end.
 
-/osrs-hcim-guide-generator
+/HCIM
 |
 |-- data/
 |   |-- raw/
 |   |   |-- items-complete.json
 |   |   |-- monsters-complete.json
-|   |   |-- (other downloaded files...)
+|   |   |-- prayers-complete.json
+|   |   |-- locations-complete.json
 |   |
-|   |-- processed/
-|       |-- (files for your database, if needed)
+|   |-- osrs_guide.db  (The final SQLite database)
 |
 |-- scripts/
-|   |-- __init__.py
-|   |-- osrsbox_importer.py
-|   |-- map_data_importer.py
-|   |-- quest_guide_parser.py
+|   |-- data_importer.py
+|   |-- db_loader.py
+|   |-- quest_parser.py
 |   |-- generate_guide.py
+|   |-- (utility scripts like db_checker.py)
 |
 |-- output/
 |   |-- hcim_guide.json
-|   |-- hcim_guide.md
 |
 |-- app/
 |   |-- index.html
@@ -39,61 +46,130 @@ The project is organized to separate data, logic, and presentation into distinct
 |-- README.md
 |-- requirements.txt
 
-Directory Purpose
+The Data Pipeline Workflow
 
-    data/: Stores all game data.
+The project operates as a sequential pipeline. Each script performs a specific task, preparing the data for the next stage.
 
-        raw/: Contains unmodified files downloaded directly from external sources.
+Stage 1: Raw Data Ingestion (data_importer.py)
 
-        processed/: Holds cleaned, structured data ready to be loaded into the database.
+This script is the entry point for all external game data. It is a complex, automated tool that:
 
-    scripts/: Contains all Python logic for fetching data, parsing information, and generating the final guide.
+    Downloads Static Data: Fetches the latest items-complete.json, monsters-complete.json, and prayers-complete.json from the official osrsbox-db repository.
 
-    output/: The destination for the final generated guide files (e.g., hcim_guide.json).
+    Automates Map Data Generation:
 
-    app/: A simple, single-page web application that fetches and displays the generated guide from the output/ directory.
+        Checks if the osrs-wiki-maps repository exists locally. If not, it automatically clones it from GitHub.
 
-How It Works: The Data Pipeline
+        Installs the necessary Python dependencies for the map tools.
 
-The project follows a multi-stage data pipeline approach:
+        Executes the cache.py script to download the latest OSRS game cache.
 
-    📥 Ingestion: The scripts in scripts/ are run to download the latest game data (items, monsters, maps, etc.) from public APIs and repositories into the data/raw/ directory.
+        Builds the Java map exporter using Maven (mvn package).
 
-    ⚙️ Processing & Storage: This raw data is then parsed, validated, and loaded into a PostgreSQL database. This structured data forms the "single source of truth" for the guide generator.
+        Executes the compiled Java application (MapExport.java) to process the game cache and generate the worldMapDefinitions.json file.
 
-    🧠 Generation: The main generate_guide.py script executes the core logic. It simulates a player's state (skills, quests completed, inventory) and queries the database to find all currently achievable tasks. It uses geospatial analysis (PostGIS) to find nearby tasks and batches them into efficient "trips".
+        Copies the final map data into /data/raw as locations-complete.json.
 
-    📄 Output: Once the generator has plotted a course to the end goal (e.g., Quest Cape), it saves the complete, ordered list of trips as a structured JSON file in the output/ directory.
+    User Prompts: Intelligently asks the user if they want to re-download the game cache or regenerate map data if it already exists, saving significant time on subsequent runs.
 
-    🖥️ Presentation: A user can view the guide by running a local web server. The simple web app in the app/ folder fetches the generated JSON file and renders it in a readable, interactive format.
+Stage 2: Database Creation (db_loader.py)
 
-Setup & Usage
+This script transforms the raw, unstructured JSON files into a powerful, queryable database.
 
-    Clone the repository:
+    Creates SQLite Database: Generates a single-file SQLite database named osrs_guide.db in the /data directory.
+
+    Defines Schema: Creates the necessary tables (items, monsters, prayers, locations, quests, tasks, task_requirements).
+
+    Loads Data: Parses each of the .json files from /data/raw and loads their contents into the corresponding database tables.
+
+Stage 3: Quest Parsing (quest_parser.py)
+
+This script enriches the database with detailed, step-by-step quest information.
+
+    Scrapes Master List: Fetches the main "Quests/List" page from the OSRS Wiki.
+
+    Identifies All Quests: Intelligently parses the page to find the links to all 173 main quests, using their unique data-rowid attributes to ensure accuracy.
+
+    Follows Links: For each quest, it follows a two-step process:
+
+        Navigates to the main quest page.
+
+        Finds the link to the dedicated /Quick_guide page.
+
+    Parses and Cleans Steps: It scrapes the quick guide page, intelligently locating the "Walkthrough" section and extracting the step-by-step instructions. It also cleans the text to remove unwanted dialogue and fix spacing issues.
+
+    Parses Requirements: It also parses the main quest page's infobox to extract item and skill requirements, storing this critical data in the database.
+
+    Populates Database: Saves all quests, steps, and requirements into the quests, tasks, and task_requirements tables.
+
+Stage 4: Guide Generation (generate_guide.py)
+
+This is the core logic engine of the project. While still under development, its purpose is to:
+
+    Connect to the Database: Reads all the structured data from osrs_guide.db.
+
+    Simulate Player State: Maintains a virtual player profile with current skills, completed quests, and inventory.
+
+    Find Unlocked Tasks: Queries the database to find all available tasks (quests, skilling, etc.) that the player currently meets the requirements for.
+
+    Create Optimal Trips: The main algorithm will select a long-term goal (e.g., a quest) and then use the location data to find and batch together other nearby, efficient tasks into a single "trip".
+
+    Generate Output: Saves the final, ordered list of trips as hcim_guide.json in the /output folder.
+
+Stage 5: Presentation Layer (/app)
+
+A simple, single-page web application for viewing the generated guide.
+
+    index.html: The main HTML structure.
+
+    js/script.js: Contains the JavaScript logic to fetch /output/hcim_guide.json and dynamically render it into a readable, interactive format with checklists.
+
+Setup and Usage
+
+To run the project from scratch, follow these steps:
+
+    Prerequisites:
+
+        Python 3.x
+
+        Git
+
+        Java Development Kit (JDK 11)
+
+        Apache Maven
+
+    Install Python Dependencies:
     Bash
-
-git clone <your-repository-url>
-cd osrs-hcim-guide-generator
-
-Install dependencies:
-Bash
 
 pip install -r requirements.txt
 
-Set up the database:
+Run the Full Data Pipeline:
 
-    Install PostgreSQL and the PostGIS extension.
+    Step 1: Run the data importer to get all raw files. This will automatically clone and build the map data on the first run.
+    Bash
 
-    Create a database and configure your connection details (you may need to add a config file for this).
+python scripts/data_importer.py
 
-Run the pipeline:
+Step 2: Run the database loader to create the SQLite database from the raw files.
+Bash
 
-    Run the data ingestion and processing scripts.
+python scripts/db_loader.py
 
-    Run the main guide generator: python scripts/generate_guide.py
+Step 3: Run the quest parser to populate the database with all quest steps and requirements. This will take several minutes.
+Bash
 
-View the guide:
+    python scripts/quest_parser.py
 
-    Start a local server from the project root: python -m http.server
+Generate the Guide:
+Bash
 
-    Open your browser and go to http://localhost:8000/app/.
+python scripts/generate_guide.py
+
+View the Guide:
+
+    Start the local web server from the project's root directory (/HCIM).
+    Bash
+
+python -m http.server
+
+Open your web browser and navigate to http://localhost:8000/app/.

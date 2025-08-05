@@ -1,14 +1,16 @@
 [
     {
-        "title": "Quest: A Kingdom Divided",
-        "goal": "Complete the first step of A Kingdom Divided.",
+        "title": "Quest: The Restless Ghost",
+        "goal": "Complete The Restless Ghost.",
         "inventory_setup": [
-            "Coins",
-            "Stamina potion"
+            "Quest-specific items will go here"
         ],
         "steps": [
             {
-                "text": "Great Kourend: a land of wealth, comfort and security. Across its five cities, the people of this Kingdom work to bring peace and prosperity. However, all is not as it seems. Beneath this delicate fa\u00e7ade lies an uncomfortable truth: the kingdom of Great Kourend is A Kingdom Divided. Since the death of the last king, Great Kourend has been ruled by the Kourend Council . Under the watchful gaze of the Council, Kourend has enjoyed a golden age of progression. But not all of its citizens are happy, and, spurred by the recent arrest of Councillor Sophia Hughes , allegations of corruption are growing. However, the political games of the Council may be the least of Kourend's concerns. A darker power is gathering in the Kingdom - one that could change the face of Gielinor forever..."
+                "text": "Step 1: Talk to Father Aereck in the Lumbridge church. ( Lumbridge teleport can be used for quick travel to Lumbridge ) ( 3 \u2022 1 ) \u2026 3 I'm looking for a quest! 1 Ok, let me help then."
+            },
+            {
+                "text": "Step 2: Go through the graveyard's southern exit and head to the hut west of Lumbridge Swamp ."
             }
         ]
     }

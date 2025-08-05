@@ -14,13 +14,13 @@ class GuideGenerator:
         """Initializes the Guide Generator, connecting to the database."""
         self.conn = self.get_db_connection()
         self.player_state = self.initialize_player_state()
-        self.all_tasks = self.load_all_tasks_from_db() # This will now be populated
+        self.all_tasks = self.load_all_tasks_from_db()
         self.guide = []
 
     def get_db_connection(self):
         """Establishes a connection to the SQLite database."""
         if not os.path.exists(DB_PATH):
-            print(f"❌ Database file not found at {DB_PATH}. Please run db_loader.py first.")
+            print(f"❌ Database file not found at {DB_PATH}. Please run quest_parser.py first.")
             return None
         try:
             conn = sqlite3.connect(DB_PATH)
@@ -46,51 +46,31 @@ class GuideGenerator:
         Loads all quest steps from the database into a list of task dictionaries.
         """
         print("Loading all tasks from the database...")
-        if not self.conn:
-            return []
-            
+        if not self.conn: return []
         cursor = self.conn.cursor()
-        
-        # Query to join quests and tasks to get all data
         cursor.execute("""
             SELECT
-                t.task_id,
                 q.name AS quest_name,
                 t.step_number,
                 t.description
             FROM tasks t
             JOIN quests q ON t.quest_id = q.quest_id
-            ORDER BY q.name, t.step_number;
+            ORDER BY q.quest_id, t.step_number;
         """)
-        
-        tasks_from_db = cursor.fetchall()
-        
-        # Convert the database rows into a list of dictionaries for easier use
-        tasks = [dict(row) for row in tasks_from_db]
-        
+        tasks = [dict(row) for row in cursor.fetchall()]
         print(f"✅ Loaded {len(tasks)} tasks from the database.")
-        
-        # --- PROOF OF CONCEPT ---
-        # Let's print the first task we loaded to prove it's working.
-        if tasks:
-            print("\n--- Sample Task Loaded ---")
-            print(f"Quest: {tasks[0]['quest_name']}")
-            print(f"Step {tasks[0]['step_number']}: {tasks[0]['description']}")
-            print("------------------------\n")
-
         return tasks
 
     def find_unlocked_tasks(self):
         """
         (Placeholder) Filters tasks based on player_state.
+        In the future, this will check skill/quest requirements from the database.
         """
-        # This is where the logic to check skill requirements, etc., will go.
-        return self.all_tasks # For now, return all tasks
+        return self.all_tasks # For now, we assume all tasks are unlocked
 
     def create_trip(self):
         """
-        (Placeholder) The core logic engine.
-        For now, it just creates one trip based on the first available task.
+        Creates a trip based on the first available quest in our task list.
         """
         print("Creating a new trip...")
         
@@ -99,15 +79,19 @@ class GuideGenerator:
             print("No more unlocked tasks available.")
             return None
 
-        # Let's build a trip around the first unlocked task
-        seed_task = unlocked_tasks[0]
+        # Get the name of the first quest in our database
+        first_quest_name = unlocked_tasks[0]['quest_name']
         
+        # Collect all steps for this specific quest
+        quest_steps = [task for task in unlocked_tasks if task['quest_name'] == first_quest_name]
+
         trip = {
-            "title": f"Quest: {seed_task['quest_name']}",
-            "goal": f"Complete the first step of {seed_task['quest_name']}.",
-            "inventory_setup": ["Coins", "Stamina potion"], # Example items
+            "title": f"Quest: {first_quest_name}",
+            "goal": f"Complete {first_quest_name}.",
+            "inventory_setup": ["Quest-specific items will go here"],
             "steps": [
-                {"text": seed_task['description']}
+                # Format each step with its number and description from the database
+                {"text": f"Step {s['step_number']}: {s['description']}"} for s in quest_steps
             ]
         }
         return trip
@@ -115,15 +99,16 @@ class GuideGenerator:
     def run(self):
         """Generates the full guide."""
         print("\nStarting guide generation...")
-        
         if not self.all_tasks:
             print("No tasks loaded from the database. Cannot generate a guide.")
             return
 
-        # For now, just generate one trip to demonstrate
+        # For now, just generate one trip for the first quest to prove it works
         new_trip = self.create_trip()
         if new_trip:
             self.guide.append(new_trip)
+            # Mark the quest as "completed" in our simulation
+            self.player_state["completed_quests"].append(new_trip["title"])
 
         print("Guide generation complete.")
         self.save_guide()

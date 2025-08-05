@@ -64,8 +64,7 @@ def fetch_all_quest_links():
 
 def parse_quest(conn, quest_name, quest_url):
     """
-    Parses a single quest by visiting its main page, finding the quick guide link,
-    and then scraping the step-by-step instructions from the quick guide.
+    Parses a single quest, finding its quick guide and scraping the cleaned steps.
     """
     print(f"  -> Processing '{quest_name}'...")
     headers = {'User-Agent': 'HCIM Guide Generator Bot'}
@@ -90,21 +89,27 @@ def parse_quest(conn, quest_name, quest_url):
         cursor.execute("INSERT OR IGNORE INTO quests (name, wiki_url) VALUES (?, ?)", (quest_name, quick_guide_url))
         quest_id = cursor.execute("SELECT quest_id FROM quests WHERE name = ?", (quest_name,)).fetchone()[0]
 
-        # Find the "Walkthrough" header to reliably locate the steps
         walkthrough_header = quick_guide_soup.find('span', id='Walkthrough')
         if not walkthrough_header:
             print(f"    ❌ No 'Walkthrough' section found for '{quest_name}'. Skipping.")
             return
 
-        # Find the FIRST ordered list that appears AFTER the walkthrough header's parent
-        steps_list = walkthrough_header.find_parent('h2').find_next('ol')
+        steps_list = walkthrough_header.find_parent('h2').find_next(['ol', 'ul'])
         if not steps_list:
-            print(f"    ❌ No ordered list (<ol>) found after 'Walkthrough' for '{quest_name}'. Skipping.")
+            print(f"    ❌ No list found after 'Walkthrough' for '{quest_name}'. Skipping.")
             return
         
         step_count = 0
         for i, step in enumerate(steps_list.find_all('li', recursive=False)):
-            step_text = step.get_text(strip=True)
+            # --- REFINED TEXT CLEANING ---
+            # 1. Remove only the dialogue explanation boxes ('dl' tags)
+            for dialogue in step.find_all('dl'):
+                dialogue.decompose()
+            
+            # 2. Get the text, using a space as a separator to prevent joined words,
+            #    which preserves the chat option numbers inside their <span> tags.
+            step_text = step.get_text(separator=' ', strip=True)
+
             cursor.execute("""
                 INSERT INTO tasks (quest_id, step_number, description)
                 VALUES (?, ?, ?);
@@ -113,7 +118,7 @@ def parse_quest(conn, quest_name, quest_url):
         
         conn.commit()
         if step_count > 0:
-            print(f"    ✅ Parsed and loaded {step_count} steps for '{quest_name}'.")
+            print(f"    ✅ Parsed and loaded {step_count} cleaned steps for '{quest_name}'.")
         else:
             print(f"    ⚠️ Found quick guide for '{quest_name}', but no steps were parsed.")
             
